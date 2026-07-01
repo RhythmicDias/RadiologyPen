@@ -1,0 +1,365 @@
+<script lang="ts">
+  import { invoke } from "@tauri-apps/api/core";
+  import { emit, listen } from "@tauri-apps/api/event";
+  import { register } from "@tauri-apps/plugin-global-shortcut";
+  import { onMount } from "svelte";
+
+  function startDrag() {
+    invoke("start_drag").catch(err => console.error(err));
+  }
+
+  let isMirrorActive = $state(false);
+  let activeTool = $state("none");
+  let selectedColor = $state("#ff3b30"); // default red
+
+  const colors = [
+    { name: "Red", value: "#ff3b30" },
+    { name: "Yellow", value: "#ffcc00" },
+    { name: "Green", value: "#34c759" },
+    { name: "Blue", value: "#007aff" }
+  ];
+
+  async function checkMirrorStatus() {
+    isMirrorActive = await invoke("is_mirror_active");
+  }
+
+  onMount(() => {
+    checkMirrorStatus();
+
+    // Register F8 to toggle annotation overlay globally
+    const registerShortcut = async () => {
+      try {
+        await register("F8", async (event) => {
+          if (event.state === "Pressed") {
+            if (activeTool !== "none") {
+              activeTool = "none";
+              await invoke("hide_canvas_window");
+            } else {
+              await triggerAnnotation("box");
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Failed to register global F8 shortcut:", err);
+      }
+    };
+    registerShortcut();
+
+    // Listen for canvas window close to reset active tool
+    const unlistenClose = listen("canvas-closed", () => {
+      activeTool = "none";
+    });
+
+    return () => {
+      unlistenClose.then(f => f());
+    };
+  });
+
+  async function triggerAnnotation(toolName: string) {
+    if (toolName === activeTool) {
+      // Toggle off
+      activeTool = "none";
+      await invoke("hide_canvas_window");
+      return;
+    }
+
+    activeTool = toolName;
+    
+    // Take screenshot and open canvas window
+    try {
+      const imgBytes = await invoke<number[]>("capture_screen");
+      // Send image bytes to canvas window
+      await emit("screenshot-captured", { bytes: imgBytes });
+      // Tell canvas window about the active tool and color
+      await emit("tool-changed", { tool: toolName, color: selectedColor });
+      // Show canvas window
+      await invoke("show_canvas_window");
+    } catch (err) {
+      console.error("Capture failed:", err);
+      activeTool = "none";
+    }
+  }
+
+  async function toggleMirror() {
+    if (isMirrorActive) {
+      await invoke("hide_mirror_window");
+      isMirrorActive = false;
+    } else {
+      await invoke("show_mirror_window");
+      isMirrorActive = true;
+    }
+    await emit("mirror-toggled", { active: isMirrorActive });
+  }
+
+  async function selectColor(color: string) {
+    selectedColor = color;
+    await emit("color-changed", { color });
+  }
+
+  async function clearAnnotations() {
+    await emit("clear-annotations");
+  }
+
+  async function undoLast() {
+    await emit("undo-annotation");
+  }
+</script>
+
+<!-- The data-tauri-drag-region makes the entire background draggable -->
+<div class="window-wrapper">
+<main class="toolbar-container" data-tauri-drag-region>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="drag-handle" onmousedown={startDrag} style="cursor: grab;">
+    <!-- Drag Dots -->
+    <svg width="12" height="20" viewBox="0 0 12 20" fill="none" class="drag-icon">
+      <circle cx="3" cy="3" r="2" fill="currentColor"/>
+      <circle cx="3" cy="10" r="2" fill="currentColor"/>
+      <circle cx="3" cy="17" r="2" fill="currentColor"/>
+      <circle cx="9" cy="3" r="2" fill="currentColor"/>
+      <circle cx="9" cy="10" r="2" fill="currentColor"/>
+      <circle cx="9" cy="17" r="2" fill="currentColor"/>
+    </svg>
+  </div>
+
+  <!-- Drawing Tools -->
+  <div class="tools-group">
+    <!-- Box Tool -->
+    <button 
+      class="tool-btn" 
+      class:active={activeTool === "box"} 
+      onclick={() => triggerAnnotation("box")}
+      title="Rectangle Tool (B)"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+      </svg>
+    </button>
+
+    <!-- Circle Tool -->
+    <button 
+      class="tool-btn" 
+      class:active={activeTool === "circle"} 
+      onclick={() => triggerAnnotation("circle")}
+      title="Circle Tool (C)"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9" />
+      </svg>
+    </button>
+
+    <!-- Arrow Tool -->
+    <button 
+      class="tool-btn" 
+      class:active={activeTool === "arrow"} 
+      onclick={() => triggerAnnotation("arrow")}
+      title="Arrow Tool (A)"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="19" x2="19" y2="5" />
+        <polyline points="12 5 19 5 19 12" />
+      </svg>
+    </button>
+
+    <!-- Magnifier Tool -->
+    <button 
+      class="tool-btn" 
+      class:active={activeTool === "magnifier"} 
+      onclick={() => triggerAnnotation("magnifier")}
+      title="Magnifying Glass (M)"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+    </button>
+
+    <!-- Big Cursor Tool -->
+    <button 
+      class="tool-btn" 
+      class:active={activeTool === "cursor"} 
+      onclick={() => triggerAnnotation("cursor")}
+      title="Highlight Cursor"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M4 2 L4 17 L7.5 13.5 L10.5 20 L12.5 19 L9.5 12 L14 12 Z" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Color Swatches -->
+  <div class="colors-group">
+    {#each colors as color}
+      <button 
+        class="color-btn" 
+        style="background-color: {color.value}"
+        class:selected={selectedColor === color.value}
+        onclick={() => selectColor(color.value)}
+        title={color.name}
+      >
+      </button>
+    {/each}
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Utility / System Controls -->
+  <div class="utilities-group">
+    <!-- Undo Button -->
+    <button class="util-btn" onclick={undoLast} title="Undo (Ctrl+Z)" disabled={activeTool === "none"}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 7v6h6" />
+        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+      </svg>
+    </button>
+
+    <!-- Clear Button -->
+    <button class="util-btn" onclick={clearAnnotations} title="Clear All" disabled={activeTool === "none"}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18" />
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      </svg>
+    </button>
+
+    <!-- Mirror Screen Toggle -->
+    <button 
+      class="util-btn" 
+      class:active={isMirrorActive} 
+      onclick={toggleMirror}
+      title="Toggle Parent Display Mirror"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
+    </button>
+  </div>
+</main>
+</div>
+
+<style>
+  /* Window wrapper: position:fixed fills window without causing overflow/scrollbars */
+  .window-wrapper {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    background: transparent;  /* explicit transparent — no WebView2 fill */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+
+  .toolbar-container {
+    display: flex;
+    align-items: center;
+    background: rgba(28, 28, 30, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 40px;
+    padding: 6px 14px;
+    color: #ffffff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+    user-select: none;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .drag-handle {
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    padding-right: 4px;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.2s;
+  }
+
+  .drag-handle:hover {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .drag-icon {
+    flex-shrink: 0;
+  }
+
+  .divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 10px;
+  }
+
+  .tools-group, .colors-group, .utilities-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tool-btn, .util-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+  }
+
+  .tool-btn:hover:not(:disabled), .util-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: scale(1.08);
+  }
+
+  .tool-btn:active:not(:disabled), .util-btn:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  .tool-btn.active {
+    background: #007aff;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(0, 122, 255, 0.4);
+  }
+
+  .util-btn.active {
+    color: #34c759;
+  }
+
+  .util-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .color-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .color-btn:hover {
+    transform: scale(1.2);
+  }
+
+  .color-btn.selected {
+    transform: scale(1.15);
+  }
+</style>

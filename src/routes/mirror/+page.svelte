@@ -110,7 +110,7 @@
       ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
       ctx.font = "24px 'Inter', sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("EEG Pen — Parent Facing Monitor", mirrorCanvas.width / 2, mirrorCanvas.height / 2);
+      ctx.fillText("RadiologyPen — Parent Facing Monitor", mirrorCanvas.width / 2, mirrorCanvas.height / 2);
     }
   });
 
@@ -177,14 +177,17 @@
     ctx.arc(mouseX, mouseY, r - 3, 0, Math.PI * 2);
     ctx.clip();
 
-    const sw = magnifierSize / zoomLevel;
-    const sh = magnifierSize / zoomLevel;
-    const sx = mouseX - sw / 2;
-    const sy = mouseY - sh / 2;
+    const scaleX = screenshotElement.naturalWidth / window.innerWidth;
+    const scaleY = screenshotElement.naturalHeight / window.innerHeight;
+    
+    const sourceWidth = (magnifierSize / zoomLevel) * scaleX;
+    const sourceHeight = (magnifierSize / zoomLevel) * scaleY;
+    const sourceX = (mouseX * scaleX) - (sourceWidth / 2);
+    const sourceY = (mouseY * scaleY) - (sourceHeight / 2);
 
     ctx.drawImage(
       screenshotElement,
-      sx, sy, sw, sh,
+      sourceX, sourceY, sourceWidth, sourceHeight,
       mouseX - r, mouseY - r, magnifierSize, magnifierSize
     );
 

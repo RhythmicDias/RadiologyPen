@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "RadiologyPen",
   "version": "0.1.0",
-  "identifier": "com.eegpen.app",
+  "identifier": "com.radiologypen.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1422",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "EEG Pen Toolbar",
+        "title": "RadiologyPen Toolbar",
         "width": 600,
         "height": 140,
         "resizable": false,
@@ -26,7 +26,7 @@
       },
       {
         "label": "canvas",
-        "title": "EEG Pen Canvas",
+        "title": "RadiologyPen Canvas",
         "decorations": false,
         "fullscreen": true,
         "alwaysOnTop": true,
@@ -36,7 +36,7 @@
       },
       {
         "label": "mirror",
-        "title": "EEG Pen Parent View",
+        "title": "RadiologyPen Parent View",
         "decorations": false,
         "fullscreen": true,
         "visible": false,

@@ -78,36 +78,24 @@
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         annotations.pop();
         syncWithMirror();
-      } else if (e.key === "Delete") {
+      } else if (e.key === "Delete" || e.key.toLowerCase() === "c") {
         annotations = [];
         syncWithMirror();
-      } else if (e.key.toLowerCase() === "b") {
-        activeTool = "box";
-        emitToolChange();
-      } else if (e.key.toLowerCase() === "c") {
-        activeTool = "circle";
-        emitToolChange();
-      } else if (e.key.toLowerCase() === "a") {
-        activeTool = "arrow";
-        emitToolChange();
-      } else if (e.key.toLowerCase() === "m") {
-        activeTool = "magnifier";
-        emitToolChange();
-      } else if (e.key.toLowerCase() === "c" && e.shiftKey) {
-        activeTool = "cursor";
-        emitToolChange();
       } else if (e.key === "1") {
-        activeColor = "#ff3b30"; // Red
-        emitColorChange();
+        if (activeTool === "box") closeCanvas();
+        else { activeTool = "box"; emitToolChange(); }
       } else if (e.key === "2") {
-        activeColor = "#ffcc00"; // Yellow
-        emitColorChange();
+        if (activeTool === "circle") closeCanvas();
+        else { activeTool = "circle"; emitToolChange(); }
       } else if (e.key === "3") {
-        activeColor = "#34c759"; // Green
-        emitColorChange();
+        if (activeTool === "arrow") closeCanvas();
+        else { activeTool = "arrow"; emitToolChange(); }
       } else if (e.key === "4") {
-        activeColor = "#007aff"; // Blue
-        emitColorChange();
+        if (activeTool === "magnifier") closeCanvas();
+        else { activeTool = "magnifier"; emitToolChange(); }
+      } else if (e.key === "5") {
+        if (activeTool === "cursor") closeCanvas();
+        else { activeTool = "cursor"; emitToolChange(); }
       } else if (e.key === "[" && activeTool === "magnifier") {
         zoomLevel = Math.max(1.5, zoomLevel - 0.5);
       } else if (e.key === "]" && activeTool === "magnifier") {
@@ -275,15 +263,18 @@
     ctx.clip();
 
     // Calculate source coords on the original screenshot
-    const sw = magnifierSize / zoomLevel;
-    const sh = magnifierSize / zoomLevel;
-    const sx = mouseX - sw / 2;
-    const sy = mouseY - sh / 2;
+    const scaleX = screenshotElement.naturalWidth / window.innerWidth;
+    const scaleY = screenshotElement.naturalHeight / window.innerHeight;
+    
+    const sourceWidth = (magnifierSize / zoomLevel) * scaleX;
+    const sourceHeight = (magnifierSize / zoomLevel) * scaleY;
+    const sourceX = (mouseX * scaleX) - (sourceWidth / 2);
+    const sourceY = (mouseY * scaleY) - (sourceHeight / 2);
 
     // Draw zoomed-in image portion
     ctx.drawImage(
       screenshotElement,
-      sx, sy, sw, sh,
+      sourceX, sourceY, sourceWidth, sourceHeight,
       mouseX - r, mouseY - r, magnifierSize, magnifierSize
     );
 

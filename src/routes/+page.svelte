@@ -50,8 +50,19 @@
       activeTool = "none";
     });
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "1") triggerAnnotation("box");
+      else if (e.key === "2") triggerAnnotation("circle");
+      else if (e.key === "3") triggerAnnotation("arrow");
+      else if (e.key === "4") triggerAnnotation("magnifier");
+      else if (e.key === "5") triggerAnnotation("cursor");
+      else if (e.key.toLowerCase() === "c") clearAnnotations();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       unlistenClose.then(f => f());
+      window.removeEventListener("keydown", handleKeyDown);
     };
   });
 
@@ -124,66 +135,81 @@
   <!-- Drawing Tools -->
   <div class="tools-group">
     <!-- Box Tool -->
-    <button 
-      class="tool-btn" 
-      class:active={activeTool === "box"} 
-      onclick={() => triggerAnnotation("box")}
-      title="Rectangle Tool (B)"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-      </svg>
-    </button>
+    <div class="tool-wrapper">
+      <span class="shortcut-number">1</span>
+      <button 
+        class="tool-btn" 
+        class:active={activeTool === "box"} 
+        onclick={() => triggerAnnotation("box")}
+        title="Rectangle Tool (1)"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Circle Tool -->
-    <button 
-      class="tool-btn" 
-      class:active={activeTool === "circle"} 
-      onclick={() => triggerAnnotation("circle")}
-      title="Circle Tool (C)"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="9" />
-      </svg>
-    </button>
+    <div class="tool-wrapper">
+      <span class="shortcut-number">2</span>
+      <button 
+        class="tool-btn" 
+        class:active={activeTool === "circle"} 
+        onclick={() => triggerAnnotation("circle")}
+        title="Circle Tool (2)"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Arrow Tool -->
-    <button 
-      class="tool-btn" 
-      class:active={activeTool === "arrow"} 
-      onclick={() => triggerAnnotation("arrow")}
-      title="Arrow Tool (A)"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="5" y1="19" x2="19" y2="5" />
-        <polyline points="12 5 19 5 19 12" />
-      </svg>
-    </button>
+    <div class="tool-wrapper">
+      <span class="shortcut-number">3</span>
+      <button 
+        class="tool-btn" 
+        class:active={activeTool === "arrow"} 
+        onclick={() => triggerAnnotation("arrow")}
+        title="Arrow Tool (3)"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="19" x2="19" y2="5" />
+          <polyline points="12 5 19 5 19 12" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Magnifier Tool -->
-    <button 
-      class="tool-btn" 
-      class:active={activeTool === "magnifier"} 
-      onclick={() => triggerAnnotation("magnifier")}
-      title="Magnifying Glass (M)"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    </button>
+    <div class="tool-wrapper">
+      <span class="shortcut-number">4</span>
+      <button 
+        class="tool-btn" 
+        class:active={activeTool === "magnifier"} 
+        onclick={() => triggerAnnotation("magnifier")}
+        title="Magnifying Glass (4)"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Big Cursor Tool -->
-    <button 
-      class="tool-btn" 
-      class:active={activeTool === "cursor"} 
-      onclick={() => triggerAnnotation("cursor")}
-      title="Highlight Cursor"
-    >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <path d="M4 2 L4 17 L7.5 13.5 L10.5 20 L12.5 19 L9.5 12 L14 12 Z" />
-      </svg>
-    </button>
+    <div class="tool-wrapper">
+      <span class="shortcut-number">5</span>
+      <button 
+        class="tool-btn" 
+        class:active={activeTool === "cursor"} 
+        onclick={() => triggerAnnotation("cursor")}
+        title="Highlight Cursor (5)"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M4 2 L4 17 L7.5 13.5 L10.5 20 L12.5 19 L9.5 12 L14 12 Z" />
+        </svg>
+      </button>
+    </div>
   </div>
 
   <div class="divider"></div>
@@ -296,8 +322,23 @@
 
   .tools-group, .colors-group, .utilities-group {
     display: flex;
-    align-items: center;
+    align-items: flex-end; /* Align to bottom so buttons line up if shortcut numbers add height */
     gap: 6px;
+  }
+
+  .tool-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .shortcut-number {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1;
+    user-select: none;
   }
 
   .tool-btn, .util-btn {
@@ -361,5 +402,7 @@
 
   .color-btn.selected {
     transform: scale(1.15);
+    outline: 1.5px solid rgba(255, 255, 255, 0.9);
+    outline-offset: 2px;
   }
 </style>

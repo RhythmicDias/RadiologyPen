@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
 
   interface Shape {
-    type: "box" | "circle" | "arrow";
+    type: "box" | "circle" | "arrow" | "ai-crop";
     x1: number;
     y1: number;
     x2: number;
@@ -198,12 +198,20 @@
     ctx.lineWidth = 3;
     ctx.lineCap = "round";
 
-    if (shape.type === "box") {
+    if (shape.type === "box" || shape.type === "ai-crop") {
       const x = Math.min(shape.x1, shape.x2);
       const y = Math.min(shape.y1, shape.y2);
       const w = Math.abs(shape.x2 - shape.x1);
       const h = Math.abs(shape.y2 - shape.y1);
-      ctx.strokeRect(x, y, w, h);
+      
+      if (shape.type === "ai-crop") {
+        ctx.strokeStyle = "#a259ff"; // Purple border
+        ctx.fillStyle = "rgba(162, 89, 255, 0.2)"; // Semi-transparent fill
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x, y, w, h);
+      } else {
+        ctx.strokeRect(x, y, w, h);
+      }
     } else if (shape.type === "circle") {
       const cx = (shape.x1 + shape.x2) / 2;
       const cy = (shape.y1 + shape.y2) / 2;
@@ -338,7 +346,7 @@
     const y = e.clientY - (rect?.top || 0);
 
     tempShape = {
-      type: activeTool as "box" | "circle" | "arrow",
+      type: activeTool as "box" | "circle" | "arrow" | "ai-crop",
       x1: x,
       y1: y,
       x2: x,
@@ -368,12 +376,45 @@
       // Minimum drag check to avoid empty shapes on quick clicks
       const dist = Math.hypot(tempShape.x2 - tempShape.x1, tempShape.y2 - tempShape.y1);
       if (dist > 5) {
-        annotations.push(tempShape);
+        if (tempShape.type === "ai-crop") {
+          processAiCrop(tempShape);
+        } else {
+          annotations.push(tempShape);
+        }
       }
       tempShape = null;
       isDrawing = false;
       syncWithMirror();
     }
+  }
+
+  async function processAiCrop(shape: Shape) {
+    if (!mainCanvas || !screenshotElement) return;
+    
+    const scaleX = screenshotElement.naturalWidth / window.innerWidth;
+    const scaleY = screenshotElement.naturalHeight / window.innerHeight;
+    
+    const x = Math.min(shape.x1, shape.x2) * scaleX;
+    const y = Math.min(shape.y1, shape.y2) * scaleY;
+    const w = Math.abs(shape.x2 - shape.x1) * scaleX;
+    const h = Math.abs(shape.y2 - shape.y1) * scaleY;
+    
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) return;
+    
+    tempCtx.drawImage(
+      screenshotElement,
+      x, y, w, h,
+      0, 0, w, h
+    );
+    
+    const base64Image = tempCanvas.toDataURL("image/jpeg", 0.9);
+    
+    closeCanvas();
+    emit("ai-analyze-image", { image: base64Image });
   }
 
   function handleMouseEnter() {

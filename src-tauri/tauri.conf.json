@@ -41,6 +41,26 @@
         "fullscreen": true,
         "visible": false,
         "url": "/mirror"
+      },
+      {
+        "label": "settings",
+        "title": "Settings",
+        "width": 600,
+        "height": 500,
+        "resizable": false,
+        "visible": false,
+        "url": "/settings"
+      },
+      {
+        "label": "ai-result",
+        "title": "AI Analysis Result",
+        "width": 400,
+        "height": 300,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "transparent": true,
+        "visible": false,
+        "url": "/ai-result"
       }
     ],
     "security": {

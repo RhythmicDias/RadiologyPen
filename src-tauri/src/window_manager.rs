@@ -59,3 +59,42 @@ pub fn is_mirror_active(app: AppHandle) -> bool {
 pub fn start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
     window.start_dragging().map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn show_ai_result_window(app: AppHandle) -> Result<(), String> {
+    if let Some(ai_window) = app.get_webview_window("ai-result") {
+        ai_window.show().map_err(|e| e.to_string())?;
+        ai_window.set_focus().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn hide_ai_result_window(app: AppHandle) -> Result<(), String> {
+    if let Some(ai_window) = app.get_webview_window("ai-result") {
+        ai_window.hide().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn save_history_image(app: AppHandle, id: String, bytes: Vec<u8>) -> Result<String, String> {
+    use tauri::Manager;
+    let mut path = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    path.push("history_images");
+    std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    path.push(format!("{}.jpg", id));
+    std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn clear_history_images(app: AppHandle) -> Result<(), String> {
+    use tauri::Manager;
+    let mut path = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    path.push("history_images");
+    if path.exists() {
+        std::fs::remove_dir_all(&path).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
